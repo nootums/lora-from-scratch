@@ -1,0 +1,5 @@
+{
+    "model_name" : "llama-3.2-1b-inst",
+    "data_loc" : "data.json",
+    "sep_token" : " |"
+}
