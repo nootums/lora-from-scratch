@@ -49,4 +49,28 @@ For the purposes of this project, I am using the [Llama-3.2-1b-instruct](https:/
 
 While training, we will use the crossentropy loss on the sigmoid of the model outputs. This where the sep_token_index from the dataset comes into picture, as we will only calculate the loss on token predictions the come *after* the separator, as we want the lora adapters to learn to generate tags, so it doesn't make sense for us to penalize it for token predictions that are the part of the quote, This helps ensure that the new weights do not interfere with the quote part of the sentence, but only learn to generate the tags for the quote after the separator. Other than this small training quirk(and some minor training optimizations), the training pipeline is quite generic, where the hyperparameters, loss functions and optimizers can be changed as one sees fit.
 
-#Results
+# Results
+This is able to learn the expected output format, which is strings in a list format, and we know the training is successful as the base model provides tags similar to instagram with hastags in them, but on loading the lora aapters, it is able to provide an ordered list, including the \<eos\> token.
+
+Here are sample outputs:
+
+```
+Example 1:
+Base model : <|begin_of_text|>Playing the bass guitar is fun | tags: bass, music, guitar, playing, fun\n\nI've always been fascinated by the bass guitar.
+Lora model : <|begin_of_text|>Playing the bass guitar is fun | tags: bass guitar', 'play', 'rocking', 'sarcasm']<|eot_id|>
+
+Example 2:
+base model : <|begin_of_text|>Don't cry because its over, smile because it happened | tags: #relaxation, #selfcare, #mentalhealthmatters, #mindfulness, #
+Lora model : <|begin_of_text|>Don't cry because its over, smile because it happened | tags:', 'humor', 'smile']<|eot_id|> 
+```
+
+In both these examples, the base model doesn't provide the tags in the correct format, and also does not stop generation by producing an \<eos\> token; while the lora finetuned model is able to do so.
+
+Also, after dumping the lora weights, we can see that the additional weights only require 22.7MB of storage. I am uploading the lora weights in this repo in case any of you would like to load these weights and play around with them.
+
+
+# Closing thoughts
+This experiment was a success in my books, as even though there are some things that could be improved, this excercise proved that the implementation works, and provided with enough compute, along with high quality(and quantity) data, we would we able to create good quality LoRA adapters, even for complex tasks. Also, since the nature of generation was not instruction based, I feel we would've had better results with the non instruct Llama-3.2-1b model. 
+
+
+Thanks for checking out this repo and I hope you learnt something from this :)

@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import transformers
+import pickle
 
 class LoraModule(nn.Module):
     def __init__(self, orig_module:nn.modules.linear.Linear, r:int=8, alpha:float=1.0):
@@ -59,3 +60,33 @@ def change_lora_alpha(model:transformers.modeling_utils.PreTrainedModel, new_alp
                 break
         if type(module_pointer)==LoraModule:
             module_pointer.set_alpha(new_alpha)
+
+def dump_lora_weights(model:transformers.modeling_utils.PreTrainedModel, filename:str):
+    lora_weights = {}
+    for name, module in model.named_parameters():
+        names = name.split('.')[:-1]
+        module_pointer = model
+        for layer in names:
+            module_pointer = getattr(module_pointer, layer)
+            if type(module_pointer)==LoraModule:
+                break
+        if type(module_pointer)==LoraModule:
+            lora_weights[name] = module_pointer.lora_module
+    with open(filename, 'wb') as f:
+        pickle.dump(lora_weights, f)
+def load_lora_weights(model:transformers.modeling_utils.PreTrainedModel, filename:str):
+    with open(filename, 'rb') as f:
+        lora_weights = pickle.load(f)
+    for module in lora_weights:
+        names = module.split('.')[:-2]
+        module_pointer = model
+        module_pointer_parent = None
+        for layer in names:
+            module_pointer_parent = module_pointer
+            module_pointer = getattr(module_pointer, layer)
+        if type(module_pointer)==nn.modules.linear.Linear:
+            lora_module = LoraModule(module_pointer)
+            lora_module.lora_module = lora_weights[module]
+            setattr(module_pointer_parent, names[-1], lora_module)
+        else:
+            continue
