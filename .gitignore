@@ -162,3 +162,4 @@ cython_debug/
 #.idea/
 
 llama-3.2-1b-inst/
+lora_model.pkl
